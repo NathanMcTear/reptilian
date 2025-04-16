@@ -1,0 +1,28 @@
+# Object files
+*.o
+
+# Static libraries
+*.a
+
+# Executables
+test
+
+# Editor and IDE folders
+.vscode/
+.vscode-server/
+
+# System/user-specific files
+.bash_history
+.bash_logout
+.bashrc
+.profile
+.reptilian_profile
+.sudo_as_admin_successful
+.wget-hsts
+.cache/
+.dotnet/
+
+# Backup or temporary files
+*~
+*.swp
+*.tmp
