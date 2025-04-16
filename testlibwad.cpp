@@ -3,7 +3,9 @@
 #include "libWad/Wad.h"
 
 using namespace std;
-int testContentNDirs();
+int testContentNDirs(Wad* wad);
+Wad* setwad(const string &path);
+int testGetSize(Wad* wad);
 
 void unitTestContentNDirs(Wad* wad, const string& path, bool expectContent, bool expectDirectory) {
     bool actualContent = wad->isContent(path);
@@ -13,21 +15,39 @@ void unitTestContentNDirs(Wad* wad, const string& path, bool expectContent, bool
     assert(actualDirectory == expectDirectory);
 }
 
-int main() {
-    int score = 0;
-    int tests = 0;
-    score = testContentNDirs();
-    tests++;
-    cout << "Overall Test Score: " << score << "/" << tests << endl;
+void unitTestGetSize(Wad* wad) {
+
+    assert(wad->getSize("/E1M0/01.txt") == 17);
+    assert(wad->getSize("/Gl/ad/os/cake.jpg") == 29869);
+    assert(wad->getSize("/fake/path") == -1);
+    assert(wad->getSize("/") == -1);
 }
 
-int testContentNDirs() {
-    cout << "Testing isContent & isDirectory:" << endl;
+int main() {
+
+    Wad* wad = setwad("libWad/P3Files/sample1.wad");
+
+    int score = 0;
+    int tests = 0;
+    score = testContentNDirs(wad);
+    tests++;
+    score += testGetSize(wad);
+    tests++;
+    cout << "Overall Test Score: " << score << "/" << tests << endl;
+    delete wad;
+}
+
+Wad* setwad(const string &path) {
     Wad* wad = Wad::loadWad("libWad/P3Files/sample1.wad");
     if (!wad) {
         cerr << "Failed to load WAD." << endl;
-        return 1;
+        return nullptr;
     }
+    return wad;
+}
+
+int testContentNDirs(Wad* wad) {
+    cout << "Testing isContent & isDirectory:" << endl;
 
     // Root
     unitTestContentNDirs(wad, "/", false, true);
@@ -63,7 +83,14 @@ int testContentNDirs() {
     // Made-up path
     unitTestContentNDirs(wad, "/fake/path/ghost", false, false);
 
-    delete wad;
+    cout << "Passed!" << endl;
+    return 1;
+}
+
+int testGetSize(Wad* wad) {
+
+    cout << "Testing getSize:" << endl;
+    unitTestGetSize(wad);
     cout << "Passed!" << endl;
     return 1;
 }

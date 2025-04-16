@@ -163,10 +163,6 @@ bool Wad::isDirectory(const string &path) {
     return false;
 }
 
-// bool isMarker() {}
-// bool isFile() {}
-
-
 // If path represents content, returns the number of bytes in its data; otherwise, returns -1.
 // &path is relative to the virtual filesystem
 int Wad::getSize(const string &path) {
@@ -174,7 +170,10 @@ int Wad::getSize(const string &path) {
     - if !isContent(), ret -1;
     - else ret Descriptor.Elementsize
     */
-   return 0;
+    if (!isContent(path))
+        return -1;
+    auto it = pathMap.find(path);
+    return it->second->size;
 }
 
 // If path represents content, copies as many bytes as are available, up to length, of content's data into the pre- existing buffer. 
