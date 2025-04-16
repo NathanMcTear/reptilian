@@ -8,15 +8,12 @@ void test(Wad* wad, const string& path, bool expectContent, bool expectDirectory
     bool actualContent = wad->isContent(path);
     bool actualDirectory = wad->isDirectory(path);
 
-    cout << "Testing path: " << path << endl;
-    cout << "  isContent(): expected " << expectContent << ", got " << actualContent << endl;
-    cout << "  isDirectory(): expected " << expectDirectory << ", got " << actualDirectory << endl;
-
     assert(actualContent == expectContent);
     assert(actualDirectory == expectDirectory);
 }
 
 int main() {
+    cout << "Testing isContent & isDirectory:" << endl;
     Wad* wad = Wad::loadWad("libWad/P3Files/sample1.wad");
     if (!wad) {
         cerr << "Failed to load WAD." << endl;
@@ -49,7 +46,7 @@ int main() {
     test(wad, "/Gl/ad/os", false, true);
 
     // File inside os
-    test(wad, "Gl/ad/os/cake.jpg", true, false);
+    test(wad, "/Gl/ad/os/cake.jpg", true, false);
 
     // root file
     test(wad, "/mp.txt", true, false);
@@ -58,6 +55,6 @@ int main() {
     test(wad, "/fake/path/ghost", false, false);
 
     delete wad;
-    cout << "\nAll tests passed!" << endl;
+    cout << "All tests passed!" << endl;
     return 0;
 }

@@ -89,9 +89,10 @@ Wad::Wad(const string &path) {
        else if (name.size() == 4 && name[0] == 'E' && isdigit(name[1]) && name[2] == 'M' && isdigit(name[3])) {
            WadNode* mapDir = new WadNode(name, true, true);
            mapDir->parent = dirStack.top();
-           mapDir->fullPath = dirStack.top()->fullPath + "/" + name;
+           mapDir->fullPath = dirStack.top()->fullPath + (dirStack.top()->fullPath == "/" ? "" : "/") + name;
            dirStack.top()->children.push_back(mapDir);
            pathMap[mapDir->fullPath] = mapDir;
+
 
            for (size_t j = 1; j <= 10 && (i + j) < descriptors.size(); ++j) {
                LumpDesc& lump = descriptors[i + j];
@@ -111,7 +112,7 @@ Wad::Wad(const string &path) {
            file->offset = d.offset;
            file->size = d.size;
            file->parent = dirStack.top();
-           file->fullPath = dirStack.top()->fullPath + "/" + name;
+           file->fullPath = dirStack.top()->fullPath + (dirStack.top()->fullPath == "/" ? "" : "/") + name;
            dirStack.top()->children.push_back(file);
            pathMap[file->fullPath] = file;
        }
