@@ -6,22 +6,47 @@ using namespace std;
 int testContentNDirs(Wad* wad);
 Wad* setwad(const string &path);
 int testGetSize(Wad* wad);
+int testGetContents(Wad* wad);
+
+
+
 
 void unitTestContentNDirs(Wad* wad, const string& path, bool expectContent, bool expectDirectory) {
     bool actualContent = wad->isContent(path);
     bool actualDirectory = wad->isDirectory(path);
-
+    
     assert(actualContent == expectContent);
     assert(actualDirectory == expectDirectory);
 }
 
 void unitTestGetSize(Wad* wad) {
-
+    
     assert(wad->getSize("/E1M0/01.txt") == 17);
     assert(wad->getSize("/Gl/ad/os/cake.jpg") == 29869);
     assert(wad->getSize("/fake/path") == -1);
     assert(wad->getSize("/") == -1);
 }
+
+void unitTestGetContents(Wad* wad) {
+    char buffer[100] = {};
+
+    // Read and check bytes
+    int bytes = wad->getContents("/E1M0/01.txt", buffer, 100);
+    assert(bytes == 17);
+
+    // Edge: invalid path
+    char badBuffer[20] = {};
+    int result = wad->getContents("/not/real/path", badBuffer, 20);
+    assert(result == -1);
+
+    // Edge: directory path
+    result = wad->getContents("/Gl", badBuffer, 20);
+    assert(result == -1);
+}
+
+
+
+
 
 int main() {
 
@@ -32,6 +57,8 @@ int main() {
     score = testContentNDirs(wad);
     tests++;
     score += testGetSize(wad);
+    tests++;
+    score += testGetContents(wad);
     tests++;
     cout << "Overall Test Score: " << score << "/" << tests << endl;
     delete wad;
@@ -91,6 +118,13 @@ int testGetSize(Wad* wad) {
 
     cout << "Testing getSize:" << endl;
     unitTestGetSize(wad);
+    cout << "Passed!" << endl;
+    return 1;
+}
+
+int testGetContents(Wad* wad) {
+    cout << "Testing getContents:" << endl;
+    unitTestGetContents(wad);
     cout << "Passed!" << endl;
     return 1;
 }

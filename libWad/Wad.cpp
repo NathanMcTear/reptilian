@@ -17,6 +17,7 @@ Wad::Wad(const string &path) {
     - build tree *TOKEN-IZE THE FILE STRUCTURE (/F/F1/F2 => "F" -> "F1" -> "F2")
     - No lumps
     */
+   wadFilePath = path;
    ifstream file(path, ios::binary);
    if (!file) {
        cerr << "Failed to open WAD file: " << path << endl;
@@ -181,18 +182,34 @@ int Wad::getSize(const string &path) {
 // Returns number of bytes copied into buffer, or -1 if path does not represent content (e.g., if it represents a directory).
 // &path is relative to the virtual filesystem
 int Wad::getContents(const string &path, char *buffer, int length, int offset) {
-    int off;
-    if (offset != 0)
-        off = offset;
     /*
     *offset is def to 0
-    - if isContent, ret -1
+    - if !isContent, ret -1
     - if offset > length, ret 0
     - else, init buffer and for-loop (i = offset; i < length; i++)
     - fencepost the null terminator
     - return number of chars copied to buffer
-    */
-   return off;
+     */
+    
+    if(!isContent(path))
+        return -1;
+
+    auto it = pathMap.find(path);
+    WadNode* node = it->second;
+    
+    if(offset >= node->size) 
+        return 0;
+
+    int bytes = min(length, node->size - offset);
+
+    ifstream file(wadFilePath, ios::binary);
+    if (!file)
+        return -1;
+    
+    file.seekg(node->offset + offset, ios::beg);
+    file.read(buffer, bytes);
+
+    return file.gcount();
 }
 
 // If path represents a directory, places entries for immediately contained elements in directory. 
@@ -268,10 +285,7 @@ int Wad::writeToFile(const string &path, const char *buffer, int length, int off
     - UPDATE n-ary tree file's length and offset
     - UPDATE descriptor offset + length(IN BYTES)
     */
-    int off;
-    if (offset != 0)
-        off = offset;
-    return off;
+    return 0;
 }
 
 // NOTE: If a file or directory is created inside the root directory, it will be placed at the very end of the descriptor list, 

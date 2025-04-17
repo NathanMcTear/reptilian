@@ -31,6 +31,7 @@ class Wad {
     WadNode* root;
     unordered_map<string, WadNode*> pathMap;
     // some data structure to track lumps
+    string wadFilePath;
     
     Wad(const string &path);
     
