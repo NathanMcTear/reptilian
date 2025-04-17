@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <algorithm>
 #include "libWad/Wad.h"
 
 using namespace std;
@@ -7,6 +8,7 @@ int testContentNDirs(Wad* wad);
 Wad* setwad(const string &path);
 int testGetSize(Wad* wad);
 int testGetContents(Wad* wad);
+int testGetDirectory(Wad* wad);
 
 
 
@@ -44,6 +46,40 @@ void unitTestGetContents(Wad* wad) {
     assert(result == -1);
 }
 
+void unitTestGetDirectory(Wad* wad) {
+    vector<string> entries;
+
+    // Test root directory
+    entries.clear();
+    int count = wad->getDirectory("/", &entries);
+    assert(count == 3);  // E1M0, Gl, mp.txt
+    assert(find(entries.begin(), entries.end(), string("E1M0")) != entries.end());
+    assert(find(entries.begin(), entries.end(), string("Gl")) != entries.end());
+    assert(find(entries.begin(), entries.end(), string("mp.txt")) != entries.end());
+
+    // Test map marker directory
+    entries.clear();
+    count = wad->getDirectory("/E1M0", &entries);
+    assert(count == 10);
+    assert(find(entries.begin(), entries.end(), string("01.txt")) != entries.end());
+
+    // Test nested namespace
+    entries.clear();
+    count = wad->getDirectory("/Gl", &entries);
+    assert(count == 1);
+    assert(entries[0] == "ad");
+
+    // Invalid: path is content
+    entries.clear();
+    count = wad->getDirectory("/E1M0/01.txt", &entries);
+    assert(count == -1);
+
+    // Invalid: path doesn't exist
+    entries.clear();
+    count = wad->getDirectory("/not/real/path", &entries);
+    assert(count == -1);
+}
+
 
 
 
@@ -59,6 +95,8 @@ int main() {
     score += testGetSize(wad);
     tests++;
     score += testGetContents(wad);
+    tests++;
+    score += testGetDirectory(wad);
     tests++;
     cout << "Overall Test Score: " << score << "/" << tests << endl;
     delete wad;
@@ -125,6 +163,13 @@ int testGetSize(Wad* wad) {
 int testGetContents(Wad* wad) {
     cout << "Testing getContents:" << endl;
     unitTestGetContents(wad);
+    cout << "Passed!" << endl;
+    return 1;
+}
+
+int testGetDirectory(Wad* wad) {
+    cout << "Testing getDirectory:" << endl;
+    unitTestGetDirectory(wad);
     cout << "Passed!" << endl;
     return 1;
 }

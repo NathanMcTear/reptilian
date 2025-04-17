@@ -222,7 +222,18 @@ int Wad::getDirectory(const string &path, vector<string> *directory) {
     *add the children of the path to directory vector
     *DO NOT SORT
     */
-    return 0;
+   if (!isDirectory(path)) return -1;
+
+   auto it = pathMap.find(path);
+   if (it == pathMap.end()) return -1;
+
+   WadNode* node = it->second;
+
+   for (WadNode* child : node->children) {
+       directory->push_back(child->name);
+   }
+
+   return node->children.size();
 }
 
 // FOR THE NEXT THREE FUNCTIONS:
