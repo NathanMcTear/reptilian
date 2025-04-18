@@ -1,5 +1,5 @@
 CFLAGS = -Wall -std=c++17
-TARGET = liblibWad.a
+TARGET = libWad.a
 OBJS = Wad.o
 
 

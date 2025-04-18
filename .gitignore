@@ -7,6 +7,10 @@
 # Executables
 test
 
+# Testing Files
+test-workspace/
+*.sh
+
 # Editor and IDE folders
 .vscode/
 .vscode-server/
@@ -29,3 +33,6 @@ test
 
 #ssh
 .ssh/
+
+#local
+.local/

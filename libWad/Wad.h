@@ -12,6 +12,7 @@ struct WadNode {
     bool isMap = false;
     int offset = 0;             // File offset
     int size = 0;               // Lump size
+    vector<char> data;
 
     WadNode* parent = nullptr;
     vector<WadNode*> children;
@@ -29,13 +30,17 @@ class Wad {
     int _offset;
     string _magicString;
     WadNode* root;
-    unordered_map<string, WadNode*> pathMap;
     // some data structure to track lumps
     string wadFilePath;
     
     Wad(const string &path);
+
     
 public:
+    unordered_map<string, WadNode*> pathMap;
+
+    // Debug helper function to print the full n-ary tree
+    void printTree(WadNode* node, int depth);
 
     // Object allocator; dynamically creates a Wad object and loads the WAD file data from path into memory. 
     // Caller must deallocate the memory using the delete keyword.

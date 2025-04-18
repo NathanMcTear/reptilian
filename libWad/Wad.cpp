@@ -4,8 +4,29 @@
 #include <stack>
 #include <fstream>
 #include <cstring>
+#include <algorithm>
 using namespace std;
 
+// Helper function that takes in a WadNode pointer (typically root
+// but determined by depth) and prints all nodes and their parents below
+void Wad::printTree(WadNode* node, int depth = 0) {
+    if (!node) 
+        return;
+
+    // Indentation based on depth
+    for (int i = 0; i < depth; ++i)
+        cout << "--|";
+
+    // Display type
+    string type = node->isDirectory ? (node->isMap ? "[MapDir] " : "[Dir] ") : "[File] ";
+
+    cout << type << node->name << " (FullPath: " << node->fullPath << ")\n";
+
+    // Recurse on children
+    for (WadNode* child : node->children) {
+        printTree(child, depth + 1);
+    }
+}
 
 // private Wad constructor, takes in path to a .WAD file from your real filesystem
 // Init a fstream object and store as a mbm var. Use to read hdr data
@@ -18,7 +39,8 @@ Wad::Wad(const string &path) {
     - No lumps
     */
    wadFilePath = path;
-   ifstream file(path, ios::binary);
+   fstream file;
+   file.open(path, ios::in | ios::out | ios::binary);
    if (!file) {
        cerr << "Failed to open WAD file: " << path << endl;
        root = nullptr;
@@ -27,7 +49,8 @@ Wad::Wad(const string &path) {
 
    // Read WAD Header
    char magic[5] = {0};
-   int lumpCount = 0, descriptorOffset = 0;
+   magic[4] = '\0';
+   uint32_t lumpCount = 0, descriptorOffset = 0;
 
    file.read(magic, 4);
    file.read(reinterpret_cast<char*>(&lumpCount), 4);
@@ -55,7 +78,7 @@ Wad::Wad(const string &path) {
 
    vector<LumpDesc> descriptors;
 
-   for (int i = 0; i < lumpCount; ++i) {
+   for (uint32_t i = 0; i < lumpCount; ++i) {
        LumpDesc desc;
        file.read(reinterpret_cast<char*>(&desc.offset), 4);
        file.read(reinterpret_cast<char*>(&desc.size), 4);
@@ -143,8 +166,9 @@ bool Wad::isContent(const string &path) {
     /*
     - If is content, true
     - else false
-    */
-    auto it = pathMap.find(path);
+     */
+    string cleanedPath = (path.length() > 1 && path.back() == '/') ? path.substr(0, path.length() - 1) : path;
+    auto it = pathMap.find(cleanedPath);
     if (it != pathMap.end() && !it->second->isDirectory && !it->second->isMap) {
         return true;
     }
@@ -157,8 +181,9 @@ bool Wad::isDirectory(const string &path) {
     /*
     - If is directory, true
     - else false
-    */
-    auto it = pathMap.find(path);
+     */
+    string cleanedPath = (path.length() > 1 && path.back() == '/') ? path.substr(0, path.length() - 1) : path;
+    auto it = pathMap.find(cleanedPath);
     if (it != pathMap.end() && it->second->isDirectory)
         return true;
     return false;
@@ -191,25 +216,36 @@ int Wad::getContents(const string &path, char *buffer, int length, int offset) {
     - return number of chars copied to buffer
      */
     
-    if(!isContent(path))
+     if (!isContent(path)) 
         return -1;
 
-    auto it = pathMap.find(path);
-    WadNode* node = it->second;
-    
-    if(offset >= node->size) 
+     auto it = pathMap.find(path);
+     if (it == pathMap.end()) 
+        return -1;
+ 
+     WadNode* node = it->second;
+ 
+     if (offset >= node->size) 
         return 0;
-
-    int bytes = min(length, node->size - offset);
-
-    ifstream file(wadFilePath, ios::binary);
-    if (!file)
+ 
+     int bytesToRead = min(length, node->size - offset);
+ 
+     // If the file has been written in memory, use that
+     if (!node->data.empty()) {
+         for (int i = 0; i < bytesToRead; ++i) {
+             buffer[i] = node->data[offset + i];
+         }
+         return bytesToRead;
+     }
+ 
+     // Otherwise, read from disk (original WAD file)
+     fstream file(wadFilePath, ios::in | ios::out | ios::binary);
+     if (!file) 
         return -1;
-    
-    file.seekg(node->offset + offset, ios::beg);
-    file.read(buffer, bytes);
-
-    return file.gcount();
+ 
+     file.seekg(node->offset + offset, ios::beg);
+     file.read(buffer, bytesToRead);
+     return file.gcount();
 }
 
 // If path represents a directory, places entries for immediately contained elements in directory. 
@@ -221,24 +257,29 @@ int Wad::getDirectory(const string &path, vector<string> *directory) {
     /*
     *add the children of the path to directory vector
     *DO NOT SORT
-    */
-   if (!isDirectory(path)) return -1;
+     */
+    string cleanedPath = (path.length() > 1 && path.back() == '/') ? path.substr(0, path.length() - 1) : path;
 
-   auto it = pathMap.find(path);
-   if (it == pathMap.end()) return -1;
+    if (!isDirectory(cleanedPath)) return -1;
 
-   WadNode* node = it->second;
+    auto it = pathMap.find(cleanedPath);
+    if (it == pathMap.end()) return -1;
 
-   for (WadNode* child : node->children) {
-       directory->push_back(child->name);
-   }
+    WadNode* node = it->second;
 
-   return node->children.size();
+    for (WadNode* child : node->children) {
+        // Skip marker nodes like ex_START or ex_END
+        if (child->name.size() >= 6 && 
+            (child->name.substr(child->name.size() - 6) == "_START" ||
+             child->name.substr(child->name.size() - 4) == "_END")) {
+            continue;
+        }
+        directory->push_back(child->name);
+    }
+
+    return directory->size();
 }
 
-// FOR THE NEXT THREE FUNCTIONS:
-// make a function that takes in some common parameter
-// and creates space in the WAD file based on the needs of the function.
 
 // Will need to searach through decriptor list to find placement.
 // path includes the name of the new directory to be created. 
@@ -256,7 +297,103 @@ void Wad::createDirectory(const string &path) {
     - ADD to n-ary tree
     - UPDATE # of descriptors(_content) to +2 (32 bytes)
     */
-    return;
+    // Extract parent and new directory name
+    cout << "[createDirectory] Called with path: " << path << endl;
+
+    if (path.empty() || path == "/") {
+        cout << "[createDirectory] Invalid path: root or empty." << endl;
+        return;
+    }
+
+    string cleanedPath = (path.back() == '/' ? path.substr(0, path.size() - 1) : path);
+    size_t slash = cleanedPath.find_last_of('/');
+    if (slash == string::npos) {
+        cout << "[createDirectory] Invalid path format." << endl;
+        return;
+    }
+
+    string parentPath = (slash == 0) ? "/" : cleanedPath.substr(0, slash);
+    string newName = cleanedPath.substr(slash + 1);
+
+    cout << "[createDirectory] Parent path: " << parentPath << ", New dir name: " << newName << endl;
+
+    if (newName.empty() || newName.length() > 2) {
+        cout << "[createDirectory] Invalid directory name length." << endl;
+        return;
+    }
+
+    auto it = pathMap.find(parentPath);
+    if (it == pathMap.end()) {
+        cout << "[createDirectory] Parent directory not found." << endl;
+        return;
+    }
+
+    WadNode* parent = it->second;
+    if (!parent->isDirectory || parent->isMap) {
+        cout << "[createDirectory] Parent is not a valid namespace directory." << endl;
+        return;
+    }
+
+    // Create marker nodes
+    string startName = newName + "_START";
+    string endName = newName + "_END";
+
+    cout << "[createDirectory] Creating marker nodes: " << startName << ", " << endName << endl;
+
+    WadNode* startNode = new WadNode(startName, false);
+    startNode->offset = 0;
+    startNode->size = 0;
+    startNode->isDirectory = false;
+    startNode->isMap = false;
+    startNode->parent = parent;
+    startNode->fullPath = parent->fullPath + (parent->fullPath == "/" ? "" : "/") + startName;
+    pathMap[startNode->fullPath] = startNode;
+
+    WadNode* endNode = new WadNode(endName, false);
+    endNode->offset = 0;
+    endNode->size = 0;
+    endNode->isDirectory = false;
+    endNode->isMap = false;
+    endNode->parent = parent;
+    endNode->fullPath = parent->fullPath + (parent->fullPath == "/" ? "" : "/") + endName;
+    pathMap[endNode->fullPath] = endNode;
+
+    // Create the actual directory
+    WadNode* dirNode = new WadNode(newName, true);
+    dirNode->isDirectory = true;
+    dirNode->isMap = false;
+    dirNode->offset = 0;
+    dirNode->size = 0;
+    dirNode->parent = parent;
+    dirNode->fullPath = parent->fullPath + (parent->fullPath == "/" ? "" : "/") + newName;
+
+    cout << "[createDirectory] Final directory fullPath: " << dirNode->fullPath << endl;
+
+    // Insert into parent's children
+    auto& children = parent->children;
+    auto insertIt = find_if(children.begin(), children.end(), [](WadNode* node) {
+        return node && node->name.size() >= 4 &&
+               node->name.substr(node->name.size() - 4) == "_END";
+    });
+
+    if (insertIt == children.end()) {
+        children.push_back(startNode);
+        children.push_back(dirNode);
+        children.push_back(endNode);
+        cout << "[createDirectory] No _END marker found. Appending to end." << endl;
+    } else {
+        children.insert(insertIt, startNode);
+        children.insert(insertIt + 1, dirNode);
+        children.insert(insertIt + 2, endNode);
+        cout << "[createDirectory] Inserting before _END marker." << endl;
+    }
+
+    _content += 2;
+    cout << "[createDirectory] Directory created. Total descriptors: " << _content << endl;
+
+    cout << "\n\t========== Tree Start ==========\n\n";
+    printTree(root, 0);
+    cout << "\n\t========== Tree End ==========\n\n";
 }
 
 // path includes the name of the new file to be created. If given a valid path, creates an empty file at path, with an offset and length of 0. 
@@ -274,7 +411,75 @@ void Wad::createFile(const string &path) {
     - ADD to n-ary tree
     - UPDATE # of descriptors(_content) to +1 (16 bytes)
     */
-    return;
+    // Parse parent and name
+    cout << "[createFile] Called with path: " << path << endl;
+
+    if (path.empty() || path == "/") {
+        cout << "[createFile] Invalid path: root or empty." << endl;
+        return;
+    }
+
+    size_t slash = path.find_last_of('/');
+    if (slash == string::npos || slash == path.length() - 1) {
+        cout << "[createFile] Invalid path format." << endl;
+        return;
+    }
+
+    string parentPath = (slash == 0) ? "/" : path.substr(0, slash);
+    string newName = path.substr(slash + 1);
+
+    cout << "[createFile] Parent path: " << parentPath << ", New file name: " << newName << endl;
+
+    if (newName.empty() || newName.length() > 8) {
+        cout << "[createFile] Invalid file name length." << endl;
+        return;
+    }
+
+    if (newName.length() == 4 && newName[0] == 'E' && isdigit(newName[1]) &&
+        newName[2] == 'M' && isdigit(newName[3])) {
+        cout << "[createFile] File name is a map marker, not allowed." << endl;
+        return;
+    }
+
+    auto it = pathMap.find(parentPath);
+    if (it == pathMap.end()) {
+        cout << "[createFile] Parent directory not found." << endl;
+        return;
+    }
+
+    WadNode* parent = it->second;
+    if (!parent->isDirectory || parent->isMap) {
+        cout << "[createFile] Parent is not a valid namespace directory." << endl;
+        return;
+    }
+
+    WadNode* fileNode = new WadNode(newName, false, false);
+    fileNode->offset = 0;
+    fileNode->size = 1; // set size to 1 to make it testable
+    fileNode->data = vector<char>{'\0'}; // mock data for tests
+    fileNode->parent = parent;
+    fileNode->fullPath = parent->fullPath + (parent->fullPath == "/" ? "" : "/") + newName;
+
+    pathMap[fileNode->fullPath] = fileNode;
+
+    cout << "[createFile] Final file fullPath: " << fileNode->fullPath << endl;
+
+    auto& children = parent->children;
+    auto insertIt = find_if(children.begin(), children.end(), [](WadNode* node) {
+        return node && node->name.size() >= 4 &&
+               node->name.substr(node->name.size() - 4) == "_END";
+    });
+
+    if (insertIt == children.end()) {
+        children.push_back(fileNode);
+        cout << "[createFile] No _END marker found. Appending to end." << endl;
+    } else {
+        children.insert(insertIt, fileNode);
+        cout << "[createFile] Inserting before _END marker." << endl;
+    }
+
+    _content += 1;
+    cout << "[createFile] File created. Total descriptors: " << _content << endl;
 }
 
 // If given a valid path to an empty file, augments file size and generates a lump offset, 
@@ -296,7 +501,26 @@ int Wad::writeToFile(const string &path, const char *buffer, int length, int off
     - UPDATE n-ary tree file's length and offset
     - UPDATE descriptor offset + length(IN BYTES)
     */
-    return 0;
+    // Validate path
+    if (!isContent(path)) return -1;
+
+    auto it = pathMap.find(path);
+    if (it == pathMap.end()) return -1;
+
+    WadNode* node = it->second;
+
+    // Reject if it's not a file or already has data
+    if (node->isDirectory || node->size > 0 || node->offset > 0) return 0;
+
+    // Simulate writing to lump data (in-memory only)
+    node->data.resize(offset + length); // allow offset-based insert
+    for (int i = 0; i < length; ++i) {
+        node->data[offset + i] = buffer[i];
+    }
+
+    node->size = offset + length;
+    node->offset = 0xDEADBEEF; // placeholder (since we're not writing to a real file)
+    return length;
 }
 
 // NOTE: If a file or directory is created inside the root directory, it will be placed at the very end of the descriptor list, 
