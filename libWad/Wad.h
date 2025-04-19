@@ -32,15 +32,25 @@ class Wad {
     WadNode* root;
     // some data structure to track lumps
     string wadFilePath;
+    unordered_map<string, WadNode*> pathMap;
+
+    struct LumpDesc {
+        int offset;
+        int size;
+        char name[9]; // null-terminated
+    };
+    
+    std::vector<LumpDesc> descriptors;
     
     Wad(const string &path);
 
     
 public:
-    unordered_map<string, WadNode*> pathMap;
 
     // Debug helper function to print the full n-ary tree
     void printTree(WadNode* node, int depth);
+    void printPathMap(const string &context);
+    void printDescriptors(const std::string& context = "") const;
 
     // Object allocator; dynamically creates a Wad object and loads the WAD file data from path into memory. 
     // Caller must deallocate the memory using the delete keyword.

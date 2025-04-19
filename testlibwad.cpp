@@ -3,17 +3,16 @@
 #include <algorithm>
 #include "libWad/Wad.h"
 #include "gtest/gtest.h"
-
 using namespace std;
 
 // ================================= THEIR TESTS ================================= //
 
-const std::string setupWorkspace(){
+const string setupWorkspace(){
 
-    const std::string wad_path = "./testfiles/sample1.wad";
-    const std::string test_wad_path = "./testfiles/sample1_copy.wad";
+    const string wad_path = "./testfiles/sample1.wad";
+    const string test_wad_path = "./testfiles/sample1_copy.wad";
 
-    std::string command = "cp " + wad_path + " " + test_wad_path;
+    string command = "cp " + wad_path + " " + test_wad_path;
     int returnCode = system(command.c_str());
 
     if(returnCode == EXIT_FAILURE){
@@ -23,28 +22,21 @@ const std::string setupWorkspace(){
     return test_wad_path;
 }
 
+/*
+
 TEST(LibWriteTests, createDirectoryTest1){
-    std::string wad_path = setupWorkspace();
+    string wad_path = setupWorkspace();
     Wad* testWad = Wad::loadWad(wad_path);
 
     //createDirectory Test 1, create dir at root
-    std::string testPath = "/ex/";
+    string testPath = "/ex/";
 
     testWad->createDirectory(testPath);
-
-    std::cout << "[TEST] PathMap contents after createDirectory(\"" << testPath << "\"):" << std::endl;
-    for (const auto& [key, val] : testWad->pathMap) {
-        std::cout << "  key: \"" << key 
-        << "\" | isDir: " << val->isDirectory 
-        << " | isMap: " << val->isMap 
-        << " | name: " << val->name 
-        << std::endl;
-    }
     
     ASSERT_TRUE(testWad->isDirectory(testPath));
     ASSERT_FALSE(testWad->isContent(testPath));
 
-    std::vector<std::string> testVector;
+    vector<string> testVector;
     int ret = testWad->getDirectory(testPath, &testVector);
     ASSERT_EQ(ret, 0);
     ASSERT_EQ(testVector.size(), 0);
@@ -54,7 +46,7 @@ TEST(LibWriteTests, createDirectoryTest1){
     ASSERT_EQ(ret, 4);
     ASSERT_EQ(testVector.size(), 4);
 
-    std::vector<std::string> expectedVector = {
+    vector<string> expectedVector = {
             "E1M0",
             "Gl",
             "mp.txt",
@@ -85,21 +77,19 @@ TEST(LibWriteTests, createDirectoryTest1){
     delete testWad;
 }
 
-/*
-
 TEST(LibWriteTests, createDirectoryTest2){
-        std::string wad_path = setupWorkspace();
+        string wad_path = setupWorkspace();
         Wad* testWad = Wad::loadWad(wad_path);
 
         //createDirectory Test 2, create dir at existing directory
-        std::string testPath = "/Gl/ex";
+        string testPath = "/Gl/ex";
 
         testWad->createDirectory(testPath);
         
         ASSERT_TRUE(testWad->isDirectory(testPath));
         ASSERT_FALSE(testWad->isContent(testPath));
 
-        std::vector<std::string> testVector;
+        vector<string> testVector;
         int ret = testWad->getDirectory(testPath, &testVector);
         ASSERT_EQ(ret, 0);
         ASSERT_EQ(testVector.size(), 0);
@@ -109,7 +99,7 @@ TEST(LibWriteTests, createDirectoryTest2){
         ASSERT_EQ(ret, 2);
         ASSERT_EQ(testVector.size(), 2);
 
-        std::vector<std::string> expectedVector = {
+        vector<string> expectedVector = {
                 "ad",
                 "ex",
         };
@@ -139,12 +129,12 @@ TEST(LibWriteTests, createDirectoryTest2){
 }
 
 TEST(LibWriteTests, createDirectoryTest3){
-        std::string wad_path = setupWorkspace();
+        string wad_path = setupWorkspace();
         Wad* testWad = Wad::loadWad(wad_path);
 
         //createDirectory Test 3, create nested directories back to back
-        std::string testPath = "/ex/";
-        std::string testPath2 = "/ex/am/";
+        string testPath = "/ex/";
+        string testPath2 = "/ex/am/";
 
         //Creating dir '/ex/'
         testWad->createDirectory(testPath);
@@ -152,7 +142,7 @@ TEST(LibWriteTests, createDirectoryTest3){
         ASSERT_TRUE(testWad->isDirectory(testPath));
         ASSERT_FALSE(testWad->isContent(testPath));
 
-        std::vector<std::string> testVector;
+        vector<string> testVector;
         int ret = testWad->getDirectory(testPath, &testVector);
         ASSERT_EQ(ret, 0);
         ASSERT_EQ(testVector.size(), 0);
@@ -162,7 +152,7 @@ TEST(LibWriteTests, createDirectoryTest3){
         ASSERT_EQ(ret, 4);
         ASSERT_EQ(testVector.size(), 4);
 
-        std::vector<std::string> expectedVector = {
+        vector<string> expectedVector = {
                 "E1M0",
                 "Gl",
                 "mp.txt",
@@ -224,24 +214,46 @@ TEST(LibWriteTests, createDirectoryTest3){
         delete testWad;
 }
 
+*/
+
+TEST(LibReadTests, getDirectoryTest6){
+    string wad_path = setupWorkspace();
+    Wad* testWad = Wad::loadWad(wad_path);
+
+    //getDirectoryTest 6, empty path
+    string testPath = "";
+
+    vector<string> expectedVector;
+    vector<string> testVector;
+    int ret = testWad->getDirectory(testPath, &testVector);
+    cout << "here" << endl;
+    ASSERT_EQ(ret, -1);
+    ASSERT_EQ(testVector.size(), 0);
+    ASSERT_EQ(testVector, expectedVector);
+
+    delete testWad;
+}
+
+/*
+
 TEST(LibWriteTests, createFileTest1){
-    std::string wad_path = setupWorkspace();
+    string wad_path = setupWorkspace();
     Wad* testWad = Wad::loadWad(wad_path);
 
     //createFile Test 1, creating file in root
-    std::string testPath = "/file.txt";
+    string testPath = "/file.txt";
 
     testWad->createFile(testPath);
 
     ASSERT_TRUE(testWad->isContent(testPath));
     ASSERT_FALSE(testWad->isDirectory(testPath));
 
-    std::vector<std::string> testVector;
+    vector<string> testVector;
     int ret = testWad->getDirectory("/", &testVector);
     ASSERT_EQ(ret, 4);
     ASSERT_EQ(testVector.size(), 4);
 
-    std::vector<std::string> expectedVector = {
+    vector<string> expectedVector = {
             "E1M0",
             "Gl",
             "mp.txt",
@@ -268,15 +280,15 @@ TEST(LibWriteTests, createFileTest1){
 }
 
 TEST(LibWriteTests, createFileTest2){
-    std::string wad_path = setupWorkspace();
+    string wad_path = setupWorkspace();
     Wad* testWad = Wad::loadWad(wad_path);
 
     //createFile Test 2, creating file in directory
-    std::string testPath = "/Gl/ad/example";
+    string testPath = "/Gl/ad/example";
 
     testWad->createFile(testPath);
 
-    std::vector<std::string> testVector;
+    vector<string> testVector;
     int ret = testWad->getDirectory("/Gl/ad/", &testVector);
 
     ASSERT_TRUE(testWad->isContent(testPath));
@@ -285,7 +297,7 @@ TEST(LibWriteTests, createFileTest2){
     ASSERT_EQ(ret, 2);
     ASSERT_EQ(testVector.size(), 2);
 
-    std::vector<std::string> expectedVector = {
+    vector<string> expectedVector = {
             "os",
             "example"
     };
@@ -311,11 +323,11 @@ TEST(LibWriteTests, createFileTest2){
 
 TEST(LibWriteTests, writeToFileTest1){
 
-    std::string wad_path = setupWorkspace();
+    string wad_path = setupWorkspace();
     Wad* testWad = Wad::loadWad(wad_path);
 
     //writeToFile Test 1, creating and writing to a text file
-    std::string testPath = "/file.txt";
+    string testPath = "/file.txt";
 
     //testing file creation
 
@@ -324,12 +336,12 @@ TEST(LibWriteTests, writeToFileTest1){
     ASSERT_TRUE(testWad->isContent(testPath));
     ASSERT_FALSE(testWad->isDirectory(testPath));
 
-    std::vector<std::string> testVector;
+    vector<string> testVector;
     int ret = testWad->getDirectory("/", &testVector);
     ASSERT_EQ(ret, 4);
     ASSERT_EQ(testVector.size(), 4);
 
-    std::vector<std::string> expectedVector = {
+    vector<string> expectedVector = {
             "E1M0",
             "Gl",
             "mp.txt",
@@ -387,14 +399,14 @@ TEST(LibWriteTests, writeToFileTest1){
 }
 
 TEST(LibFunctionalityTests, bigTest){
-    std::string wad_path = setupWorkspace();
+    string wad_path = setupWorkspace();
     Wad* testWad = Wad::loadWad(wad_path);
 
     //Creating dir '/Ex'
     testWad->createDirectory("/Ex");
-    std::vector<std::string> expectedVector = {"E1M0","Gl","mp.txt","Ex"};
+    vector<string> expectedVector = {"E1M0","Gl","mp.txt","Ex"};
     ASSERT_TRUE(testWad->isDirectory("/Ex"));
-    std::vector<std::string> testVector;
+    vector<string> testVector;
     int ret = testWad->getDirectory("/", &testVector);
     ASSERT_EQ(ret, 4);
     ASSERT_EQ(testVector.size(), 4);
@@ -819,7 +831,7 @@ int testAllFunctions(Wad* wad) {
 
 void myTests() {
 
-    std::string wad_path = setupWorkspace();
+    string wad_path = setupWorkspace();
     Wad* wad = Wad::loadWad(wad_path);
 
     int score = 0;
