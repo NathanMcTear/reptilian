@@ -32,7 +32,6 @@ TEST(LibWriteTests, createDirectoryTest1){
 
     testWad->createDirectory(testPath);
 
-    /*
     std::cout << "[TEST] PathMap contents after createDirectory(\"" << testPath << "\"):" << std::endl;
     for (const auto& [key, val] : testWad->pathMap) {
         std::cout << "  key: \"" << key 
@@ -41,7 +40,6 @@ TEST(LibWriteTests, createDirectoryTest1){
         << " | name: " << val->name 
         << std::endl;
     }
-    */
     
     ASSERT_TRUE(testWad->isDirectory(testPath));
     ASSERT_FALSE(testWad->isContent(testPath));

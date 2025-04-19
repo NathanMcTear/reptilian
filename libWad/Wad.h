@@ -87,4 +87,10 @@ public:
     // NOTE: If a file or directory is created inside the root directory, it will be placed at the very end of the descriptor list, 
     // instead of before an "_END" namespace marker.
 
+    void writeNamespaceDescriptors(fstream& file, streampos insertOffset, const string& startName, const string& endName);
+
+    void shiftDescriptorList(fstream& file, streampos insertOffset, streampos endOffset);
+
+    void writeHeader(fstream& file);
+
 };
