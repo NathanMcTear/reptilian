@@ -214,8 +214,6 @@ TEST(LibWriteTests, createDirectoryTest3){
         delete testWad;
 }
 
-*/
-
 TEST(LibReadTests, getDirectoryTest6){
     string wad_path = setupWorkspace();
     Wad* testWad = Wad::loadWad(wad_path);
@@ -226,7 +224,6 @@ TEST(LibReadTests, getDirectoryTest6){
     vector<string> expectedVector;
     vector<string> testVector;
     int ret = testWad->getDirectory(testPath, &testVector);
-    cout << "here" << endl;
     ASSERT_EQ(ret, -1);
     ASSERT_EQ(testVector.size(), 0);
     ASSERT_EQ(testVector, expectedVector);
@@ -234,7 +231,7 @@ TEST(LibReadTests, getDirectoryTest6){
     delete testWad;
 }
 
-/*
+*/
 
 TEST(LibWriteTests, createFileTest1){
     string wad_path = setupWorkspace();
@@ -278,6 +275,9 @@ TEST(LibWriteTests, createFileTest1){
 
     delete testWad;
 }
+
+/*
+
 
 TEST(LibWriteTests, createFileTest2){
     string wad_path = setupWorkspace();

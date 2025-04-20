@@ -33,9 +33,9 @@ setup(){
 
     echo "Compiling tests..."
     ## Their Tests
-    ##if ! g++ -g -o libtest.out ../libtest.cpp -lgtest -lgtest_main -lpthread -L ../libWad -lWad ; then
+    if ! g++ -g -o libtest.out ../libtest.cpp -lgtest -lgtest_main -lpthread -L ../libWad -lWad ; then
     ## MyTests
-    if ! g++ -std=c++17 -g -o libtest.out ../testlibwad.cpp -lgtest -lgtest_main -lpthread -L ../libWad -lWad ; then
+    ##if ! g++ -std=c++17 -g -o libtest.out ../testlibwad.cpp -lgtest -lgtest_main -lpthread -L ../libWad -lWad ; then
         echo "Tests did not compile. Exiting."
         exit
     fi

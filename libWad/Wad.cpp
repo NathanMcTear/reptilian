@@ -96,6 +96,14 @@ Wad::Wad(const string &path) {
     _content = lumpCount;
     _offset = descriptorOffset;
 
+    /*
+    for (int i=12; i < _offset; i++) {
+        char* byte;
+        file.read(byte, 1);
+        data.push_back()
+    }
+    */
+    
     // init Root
     root = new WadNode("/", true);
     root->fullPath = "/";
@@ -120,7 +128,9 @@ Wad::Wad(const string &path) {
     for (size_t i = 0; i < descriptors.size(); ++i) {
         LumpDesc& d = descriptors[i];
         string name(d.name);
+        /*
         cout << "[LoadWad] Attempting to add " << name << " to data structures" << endl;
+        */
 
         // START marker
         if (name.size() > 6 && name.substr(name.size() - 6) == "_START") {
@@ -147,27 +157,32 @@ Wad::Wad(const string &path) {
             
             for (size_t j = 1; j <= 10 && (i + j) < descriptors.size(); ++j) {
                 LumpDesc& lump = descriptors[i + j];
-                WadNode* file = new WadNode(lump.name, false);
-                file->offset = lump.offset;
-                file->size = lump.size;
-                file->parent = mapDir;
-                file->fullPath = mapDir->fullPath + "/" + lump.name;
-                mapDir->children.push_back(file);
-                pathMap[file->fullPath] = file;
+                WadNode* fileNode = new WadNode(lump.name, false);
+                fileNode->offset = lump.offset;
+                fileNode->size = lump.size;
+                fileNode->parent = mapDir;
+                fileNode->fullPath = mapDir->fullPath + "/" + lump.name;
+                mapDir->children.push_back(fileNode);
+                pathMap[fileNode->fullPath] = fileNode;
+                //setData(file, fileNode, lump.offset, lump.size);
             }
             i += 10; // Skip 10 lumps
         }
         // Regular file lump
         else {
-            WadNode* file = new WadNode(name, false);
-            file->offset = d.offset;
-            file->size = d.size;
-            file->parent = dirStack.top();
-            file->fullPath = dirStack.top()->fullPath + (dirStack.top()->fullPath == "/" ? "" : "/") + name;
-            dirStack.top()->children.push_back(file);
-            pathMap[file->fullPath] = file;
+            WadNode* fileNode = new WadNode(name, false);
+            fileNode->offset = d.offset;
+            fileNode->size = d.size;
+            fileNode->parent = dirStack.top();
+            fileNode->fullPath = dirStack.top()->fullPath + (dirStack.top()->fullPath == "/" ? "" : "/") + name;
+            dirStack.top()->children.push_back(fileNode);
+            pathMap[fileNode->fullPath] = fileNode;
+            setData(file, fileNode, d.offset, d.size);
         }
     }
+    /*
+    cout << "[loadFile] Closing file" << endl;
+    */
     file.close();
 }
 
@@ -290,22 +305,31 @@ int Wad::getDirectory(const string &path, vector<string> *directory) {
 
     string stripped = path;
     if (path.at(path.length() - 1) == '/' && path.length() > 1) {
+        /*
         cout << "[getDirectory] Stripping " << path << endl; 
+        */
         stripped = path.substr(0, path.length() - 1);
     }
-     
+    /*
     cout << "[getDirectory] Attempting to get Directory: "<< stripped << endl;
+    */ 
 
     if (!isDirectory(stripped)) {
         cout << "[getDirectory] " << stripped << " is not a Directory" << endl;
         return -1;
-    } cout << "[getDirectory] " << stripped << " is a Directory" << endl;
+    }
+    /*
+    cout << "[getDirectory] " << stripped << " is a Directory" << endl;
+    */ 
 
     auto it = pathMap.find(stripped);
     if (it == pathMap.end()) {
         cout << "[getDirectory] Could not find " << stripped << endl;
         return -1;
-    } cout << "[getDirectory] " << stripped << " is in pathMap as " << it->second->name << endl;
+    }
+    /*
+    cout << "[getDirectory] " << stripped << " is in pathMap as " << it->second->name << endl;
+    */ 
 
     WadNode* node = it->second;
 
@@ -318,10 +342,11 @@ int Wad::getDirectory(const string &path, vector<string> *directory) {
         string childName = child->name;
         // Skip marker node _END
         if (child->name.length() >= 5) {
-            cout << "[getDirectory] child: " << child->name << " is >=5" << endl;
             string final = child->name.substr(child->name.length() - 4, child->name.length());
             if (final == "_END") {
+                /*
                 cout << "[getDirectory] Excluding " << child->name << " from Directory" << endl;
+                */
                 continue;
             }
         }
@@ -329,11 +354,15 @@ int Wad::getDirectory(const string &path, vector<string> *directory) {
             string final = child->name.substr(child->name.length() - 6, child->name.length());
             if (final == "_START") {
                 childName = child->name.substr(0, child->name.length() - 6);
+                /*
                 cout << "[getDirectory] Splicing _START from: " << child->name << " to: " << childName << endl;
+                */
             }
         }
         directory->push_back(childName);
+        /*
         cout << "[getDirectory] Pushed " << childName << " into directory vector" << endl;
+        */
     }
 
     return directory->size();
@@ -366,7 +395,9 @@ void Wad::createDirectory(const string &path) {
     }
 
     string cleanedPath = (path.back() == '/' ? path.substr(0, path.size() - 1) : path);
+    /*
     cout << "[createDirectory] CleanedPath: " << cleanedPath << endl;
+    */
     size_t slash = cleanedPath.find_last_of('/');
     if (slash == string::npos) {
         cout << "[createDirectory] [ERROR] Invalid path format." << endl;
@@ -404,14 +435,15 @@ void Wad::createDirectory(const string &path) {
 
     WadNode* startNode = new WadNode(newName, true, false);
     startNode->offset = 0;
-    startNode->size = 1;
+    startNode->size = 0;
     startNode->parent = parent;
     startNode->fullPath = parent->fullPath + (parent->fullPath == "/" ? "" : "/") + newName;
     pathMap[pathKey] = startNode;
-    //cout << "[createDirectory] pathMap[" << pathKey << "] points to " << startNode->name << endl;
-
-    //cout << "[createDirectory] Final directory fullPath: " << parent->fullPath << newName << endl;
-
+    /*
+    cout << "[createDirectory] pathMap[" << pathKey << "] points to " << startNode->name << endl;
+    cout << "[createDirectory] Final directory fullPath: " << parent->fullPath << newName << endl;
+    */
+    
     // Insert into parent's children
     auto& children = parent->children;
     auto insertIt = find_if(children.begin(), children.end(), [](WadNode* node) {
@@ -421,20 +453,30 @@ void Wad::createDirectory(const string &path) {
 
     if (insertIt == children.end()) {
         children.push_back(startNode);
-        //cout << "[createDirectory] No _END marker found. Appending to end." << endl;
+        /*
+        cout << "[createDirectory] No _END marker found. Appending to end." << endl;
+        */
     } else {
         children.insert(insertIt, startNode);
+        /*
         //cout << "[createDirectory] Inserting before _END marker." << endl;
+        */
     }
-
+    /*
     //cout << "[createDirectory] Directory created. Total descriptors: " << _content << endl;
+    */
 
+    // Structure Debug
+    /*
     cout << "\n\t========== Tree Start ==========\n\n";
     printTree(root, 0);
     cout << "\n\t========== Path Start ==========\n\n";
     printPathMap(path);
     cout << "\n\t======= Descriptors Start ======\n\n";
     printDescriptors();
+    */
+
+    // ============================= File Write ============================= //
 
     // Open WAD
     fstream file(wadFilePath, ios::in | ios::out | ios::binary);
@@ -452,7 +494,9 @@ void Wad::createDirectory(const string &path) {
             break;
         }
     } int insertIndex = index * 16 + _offset;
+    /*
     cout << "[createDirectory] Inserting " << newName << " at: " << insertIndex << endl;
+    */
     
     // Determine insert location
     streampos insertOffset = static_cast<streampos>(insertIndex);
@@ -493,6 +537,17 @@ void Wad::createFile(const string &path) {
     - UPDATE # of descriptors(_content) to +1 (16 bytes)
     */
     // Parse parent and name
+
+    // Debug Funcs
+    /*
+    cout << "\n\t========== Tree Start ==========\n\n";
+    printTree(root, 0);
+    cout << "\n\t========== Path Start ==========\n\n";
+    printPathMap(path);
+    cout << "\n\t======= Descriptors Start ======\n\n";
+    printDescriptors();
+    */
+    
     cout << "[createFile] Called with path: " << path << endl;
 
     if (path.empty() || path == "/") {
@@ -559,9 +614,58 @@ void Wad::createFile(const string &path) {
         cout << "[createFile] Inserting before _END marker." << endl;
     }
 
+    // ============================= File Write ============================= //
+
+    // Open WAD
+    fstream file(wadFilePath, ios::in | ios::out | ios::binary);
+    if (!file.is_open()) {
+        cerr << "[createFile] Failed to open file for writing!" << endl;
+        return;
+    }
+
+    // Calculation for insert
+    string endMarker = parent->name + "_END";
+    int index = _content;
+    for (size_t i = 0; i < descriptors.size(); ++i) {
+        if (descriptors[i].name == endMarker) {
+            index = i;
+            break;
+        }
+    } int insertIndex = index * 16 + _offset;
+    /*
+    cout << "[createDirectory] Inserting " << newName << " at: " << insertIndex << endl;
+    */
+    
+    // Determine insert location
+    streampos insertOffset = static_cast<streampos>(insertIndex);
+    
+    // Write descriptors into file at that offset
+    writeFileDescriptors(file, insertOffset, newName);
+
+    // Update descriptor count and rewrite header
     _content += 1;
+    writeHeader(file);
     cout << "[createFile] File created. Total descriptors: " << _content << endl;
+
+    // Close file
+    file.close();
+
+    // Update Descriptor Vector
+    LumpDesc desc = {_offset, 0, ""};
+    strncpy(desc.name, (newName).c_str(), 8);
+    descriptors.insert(descriptors.begin() + index, desc);
+
+    // Debug Funcs
+    /*
+    cout << "\n\t========== Tree Start ==========\n\n";
+    printTree(root, 0);
+    cout << "\n\t========== Path Start ==========\n\n";
+    printPathMap(path);
+    cout << "\n\t======= Descriptors Start ======\n\n";
+    printDescriptors();
+    */
 }
+
 
 // If given a valid path to an empty file, augments file size and generates a lump offset, 
 // then writes length amount of bytes from the buffer into the file’s lump data. 
@@ -583,15 +687,25 @@ int Wad::writeToFile(const string &path, const char *buffer, int length, int off
     - UPDATE descriptor offset + length(IN BYTES)
     */
     // Validate path
-    if (!isContent(path)) return -1;
+    if (!isContent(path)) {
+        cout << "[writeToFile] [ERROR] Path: \"" << path << "\" not content" << endl;
+        return -1;
+    }
 
     auto it = pathMap.find(path);
-    if (it == pathMap.end()) return -1;
+    if (it == pathMap.end()) {
+        cout << "[writeToFile] [ERROR] Could not locate file: \"" << path << "\"" << endl;    
+        return -1;
+    }
 
     WadNode* node = it->second;
 
     // Reject if it's not a file or already has data
-    if (node->isDirectory || node->size > 0 || node->offset > 0) return 0;
+    if (node->isDirectory || node->isMap || node->size > 0) {
+        cout << "[writeToFile] [ERROR] File data wrong: \"" << path << "\""<< endl;
+        cout << "\t{isDir : " << node->isDirectory << ", isMap : " << node->isMap << ", size : " << node->size << "}" << endl; 
+        return 0;
+    }
 
     // Simulate writing to lump data (in-memory only)
     node->data.resize(offset + length); // allow offset-based insert
@@ -614,14 +728,26 @@ char* padName(const string& name) {
     return padded;
 }
 
+vector<char> Wad::setData(fstream &file, WadNode* node, int offset, int size) {
+    file.seekg(offset, ios::beg);
+    node->data.resize(size);
+    file.read(node->data.data(), size);
+    /*
+    cout << "[setData] Appended " << size << " bytes from offset " << offset << " to " << node->name << endl;
+    */
+    return node->data;
+}
+
 void Wad::writeNamespaceDescriptors(fstream& file, streampos insertOffset, const string& startName, const string& endName) {
-    file.seekp(insertOffset, ios::beg);
+    /*
     streampos current = file.tellp();
     file.seekp(0, ios::end);
     streampos fileSize = file.tellp();
     file.seekp(current);
     cout << "[writeNamespaceDescriptors] Current file size: " << fileSize << " bytes\n";
     cout << "[writeDescriptor] Attempting to write " << startName << " & " << endName << " to byte: " << insertOffset << endl;
+    */
+    file.seekp(insertOffset, ios::beg);
     for (const auto& name : {startName, endName}) {
         int32_t offset = 0;
         int32_t size = 0;
@@ -633,10 +759,25 @@ void Wad::writeNamespaceDescriptors(fstream& file, streampos insertOffset, const
 
         delete[] paddedName;
     }
+    /*
     file.seekp(0, ios::end);
     fileSize = file.tellp();
     cout << "[writeDescriptor] Wrote " << startName << " & " << endName << " to byte: " << insertOffset << endl;
     cout << "[writeNamespaceDescriptors] Current file size: " << fileSize << " bytes\n";
+    */
+}
+
+void Wad::writeFileDescriptors(fstream& file, streampos insertOffset, const string& name) {
+    file.seekp(insertOffset, ios::beg);
+    int32_t offset = _offset;
+    int32_t size = 0;
+    char* paddedName = padName(name);
+
+    file.write(reinterpret_cast<char*>(&offset), sizeof(int32_t));
+    file.write(reinterpret_cast<char*>(&size), sizeof(int32_t));
+    file.write(paddedName, 8);
+
+    delete[] paddedName;
 }
 
 void Wad::shiftDescriptorList(fstream& file, streampos insertOffset, streampos endOffset) {
@@ -651,14 +792,18 @@ void Wad::shiftDescriptorList(fstream& file, streampos insertOffset, streampos e
 }
 
 void Wad::writeHeader(fstream& file) {
+    /*
     file.seekp(0, ios::end);
     streampos fileSize = file.tellp();
     cout << "[writeHeader] Current file size: " << fileSize << " bytes\n";
+    */
     file.seekp(0, ios::beg);
     file.write(_magicString.c_str(), 4);
     file.write(reinterpret_cast<char*>(&_content), sizeof(int32_t));
     file.write(reinterpret_cast<char*>(&_offset), sizeof(int32_t));
+    /*
     file.seekp(0, ios::end);
     fileSize = file.tellp();
     cout << "[writeHeader] Current file size: " << fileSize << " bytes\n";
+    */
 }
